@@ -1,0 +1,38 @@
+{-# language DataKinds #-}
+{-# language KindSignatures #-}
+{-# language MagicHash #-}
+{-# language RankNTypes #-}
+{-# language UnboxedTuples #-}
+{-# language TypeFamilies #-}
+
+signature Array where
+
+import Data.Kind (Type)
+import GHC.Exts (TYPE,RuntimeRep(UnliftedRep),State#,Int#)
+
+import Internal
+
+data T :: Type
+data RA# :: T -> TYPE 'UnliftedRep
+data RM# :: Type -> T -> TYPE 'UnliftedRep
+
+unsafeFreeze# :: forall (s :: Type) (a :: T).
+     RM# s a
+  -> State# s
+  -> (# State# s, RA# a #)
+
+size# :: forall (a :: T). RA# a -> Int#
+
+-- copy# :: forall (s :: Type) (a :: TYPE R).
+--      M# s a
+--   -> Int#
+--   -> A# a
+--   -> Int#
+--   -> Int#
+--   -> State# s
+--   -> State# s
+
+uninitialized# :: forall (s :: Type) (a :: T).
+     Int#
+  -> State# s
+  -> (# State# s, RM# s a #)

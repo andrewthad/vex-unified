@@ -1,0 +1,42 @@
+{-# language DataKinds #-}
+{-# language KindSignatures #-}
+{-# language MagicHash #-}
+{-# language RankNTypes #-}
+{-# language TypeFamilies #-}
+{-# language UnboxedTuples #-}
+
+signature Element where
+
+import GHC.Exts (State#,Int#,RuntimeRep(UnliftedRep))
+import GHC.Exts (TYPE,RuntimeRep)
+import Data.Kind (Type)
+
+import Internal
+
+import Array (T,RA#,RM#)
+
+data R :: RuntimeRep
+
+data A# :: TYPE R -> TYPE 'UnliftedRep
+data M# :: Type -> TYPE R -> TYPE 'UnliftedRep
+
+type family Upcast (a :: TYPE R) :: T where ..
+
+width :: Int
+
+upcast :: forall (a :: TYPE R). A# a -> RA# (Upcast a)
+downcast :: forall (a :: TYPE R). RA# (Upcast a) -> A# a
+upcastMutable :: forall (s :: Type) (a :: TYPE R). M# s a -> RM# s (Upcast a)
+downcastMutable :: forall (s :: Type) (a :: TYPE R). RM# s (Upcast a) -> M# s a
+
+index# :: forall (a :: TYPE R).
+     A# a
+  -> Int#
+  -> a
+
+write# :: forall (s :: Type) (a :: TYPE R).
+     M# s a
+  -> Int#
+  -> a
+  -> State# s
+  -> State# s
