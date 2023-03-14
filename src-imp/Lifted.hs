@@ -1,45 +1,40 @@
-{-# language GADTSyntax #-}
 {-# language MagicHash #-}
 {-# language RankNTypes #-}
-{-# language ScopedTypeVariables #-}
 {-# language TypeApplications #-}
 {-# language TypeFamilies #-}
 {-# language TypeInType #-}
-{-# language UnboxedTuples #-}
-{-# language UnliftedNewtypes #-}
 {-# language StandaloneKindSignatures #-}
+{-# language UnboxedTuples #-}
 
-module Unlifted
+module Lifted
   ( R
   , A#
   , ArrayRep
   , M#
   , index#
   , write#
-  , size#
   , unsafeFreeze#
+  , uninitialized#
+  , initialized#
   , set#
   , shrink#
   , thaw#
-  , initialized#
   ) where
 
 import GHC.Exts
 import Data.Kind (Type)
+import Data.Primitive (Array(..),MutableArray(..))
 
 import qualified GHC.Exts as Exts
 
 type ArrayRep = 'BoxedRep 'Unlifted
-type R = 'BoxedRep 'Unlifted
+type R = 'BoxedRep 'Lifted
 
-type A# :: TYPE ('BoxedRep 'Unlifted) -> TYPE ('BoxedRep 'Unlifted)
+type A# :: TYPE ('BoxedRep 'Lifted) -> TYPE ('BoxedRep 'Unlifted)
 type A# = Array#
 
-type M# :: Type -> TYPE ('BoxedRep 'Unlifted) -> TYPE ('BoxedRep 'Unlifted)
+type M# :: Type -> TYPE ('BoxedRep 'Lifted) -> TYPE ('BoxedRep 'Unlifted)
 type M# = MutableArray#
-
-size# :: forall (a :: TYPE R). A# a -> Int#
-size# = sizeofArray#
 
 index# :: forall (a :: TYPE R). A# a -> Int# -> a
 index# a i = case indexArray# a i of
@@ -55,6 +50,12 @@ unsafeFreeze# :: forall (s :: Type) (a :: TYPE R).
   -> State# s
   -> (# State# s, A# a #)
 unsafeFreeze# = unsafeFreezeArray#
+
+uninitialized# :: forall (s :: Type) (a :: TYPE R).
+     Int#
+  -> State# s
+  -> (# State# s, M# s a #)
+uninitialized# i s = newArray# i errorThunk s
 
 initialized# :: forall (s :: Type) (a :: TYPE R).
      Int#
@@ -86,6 +87,7 @@ shrink# m i s0 = case sizeofMutableArray# m ==# i of
   1# -> Exts.unsafeFreezeArray# m s0
   _ -> Exts.freezeArray# m 0# i s0
 
+-- makes a copy, does not alias the argument
 thaw# :: forall (s :: Type) (a :: TYPE R).
      A# a
   -> Int#
@@ -93,3 +95,7 @@ thaw# :: forall (s :: Type) (a :: TYPE R).
   -> State# s
   -> (# State# s, M# s a #)
 thaw# = Exts.thawArray#
+
+errorThunk :: a
+{-# noinline errorThunk #-}
+errorThunk = error "Array: uninitialized element"

@@ -5,38 +5,40 @@
 {-# language TypeFamilies #-}
 {-# language UnboxedTuples #-}
 
-signature Element where
+module Element
+  ( R, A#, M#, Upcast
+  , ElementA.width, downcast, upcast, downcastMutable, upcastMutable
+  , index#, write#, set#
+  ) where
 
-import GHC.Exts (State#,Int#,RuntimeRep(UnliftedRep))
+import GHC.Exts (State#,Int#,RuntimeRep)
 import GHC.Exts (TYPE,RuntimeRep)
 import Data.Kind (Type)
 
 import Internal
 
-import Array (T,RA#,RM#)
+import Array (T,RA#,RM#,ArrayRep)
 
-data R :: RuntimeRep
+import qualified ElementA
+import qualified ElementB
 
-data A# :: TYPE R -> TYPE 'UnliftedRep
-data M# :: Type -> TYPE R -> TYPE 'UnliftedRep
+type R = 'TupleRep '[ElementA.R, ElementB.R]
 
-type family Upcast (a :: TYPE R) :: T where ..
+type A# = RA#
+data M# = RM#
 
-width :: Int
+type family Upcast (a :: TYPE R) :: T where
+  Upcast 
 
 upcast :: forall (a :: TYPE R). A# a -> RA# (Upcast a)
+upcast x = x
+
 downcast :: forall (a :: TYPE R). RA# (Upcast a) -> A# a
+downcast x = x
+
 upcastMutable :: forall (s :: Type) (a :: TYPE R). M# s a -> RM# s (Upcast a)
+upcastMutable x = x
+
 downcastMutable :: forall (s :: Type) (a :: TYPE R). RM# s (Upcast a) -> M# s a
+downcastMutable x = x
 
-index# :: forall (a :: TYPE R).
-     A# a
-  -> Int#
-  -> a
-
-write# :: forall (s :: Type) (a :: TYPE R).
-     M# s a
-  -> Int#
-  -> a
-  -> State# s
-  -> State# s

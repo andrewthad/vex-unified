@@ -17,7 +17,7 @@ import GHC.Exts
 import Internal
 import Data.Kind
 
-type UAR = 'UnliftedRep
+type UAR = 'BoxedRep 'Unlifted
 type UA = ByteArray#
 type MUA = MutableByteArray#
 

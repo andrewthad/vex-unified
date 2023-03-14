@@ -1,0 +1,136 @@
+cabal-version: 3.4
+name: vext
+version: 0.1.0.0
+bug-reports: https://github.com/andrewthad/vex-unified/issues
+license: BSD-3-Clause
+license-file: LICENSE
+author: Andrew Martin
+maintainer: andrew.thaddeus@gmail.com
+copyright: 2019 Andrew Martin
+category: Data
+extra-source-files: CHANGELOG.md
+
+library internal
+  exposed-modules:
+    Internal 
+    PrimArray
+    Data.Text.Short.Unlifted
+  default-language: Haskell2010
+  ghc-options: -O2 -Wall
+  build-depends:
+    , base >=4.12.0.0 && <5
+    , bytestring
+    , text-short
+    , ghc-prim
+  visibility: public
+  hs-source-dirs: src-internal
+
+library indef
+  exposed-modules:
+    Vector
+    Core
+    -- Vex.Sized.Vector
+    -- Vex.Sized.Slice
+  signatures:
+    Array
+  build-depends:
+    , base >=4.12.0.0 && <5
+    , vext:internal
+    , natural-arithmetic
+    , unlifted
+  hs-source-dirs: src
+  default-language: Haskell2010
+  ghc-options: -O2 -Wall
+
+-- library prim-indef
+--   reexported-modules: Vector
+--   signatures: Element
+--   build-depends:
+--     , base >=4.12.0.0 && <5
+--     , indef
+--     , internal
+--   hs-source-dirs: src-prim-indef
+--   default-language: Haskell2010
+--   ghc-options: -O2 -Wall
+--   mixins:
+--     indef (Vector as Vector) requires (Array as ConstByteArray, Element),
+-- 
+
+library imp
+  exposed-modules:
+    Word8
+    ByteArray
+    Lifted
+    Unlifted
+  build-depends:
+    , base >=4.12.0.0 && <5
+    , vext:internal
+    , primitive >=0.7
+  hs-source-dirs: src-imp
+  default-language: Haskell2010
+  ghc-options: -O2 -Wall
+
+library inst
+  default-language: Haskell2010
+  reexported-modules:
+    , Vector.Std.Lifted
+    , Vector.Std.Word8
+    , Vector.Std.Unlifted
+  build-depends:
+    , vext:imp
+    , vext:indef
+    , primitive >=0.7
+    , vext:internal
+  mixins:
+    vext:indef (Vector as Vector.Std.Word8) requires (Array as Word8),
+    vext:indef (Vector as Vector.Std.Lifted) requires (Array as Lifted),
+    vext:indef (Vector as Vector.Std.Unlifted) requires (Array as Unlifted),
+
+library pair-indef
+  exposed-modules:
+    Array
+  signatures:
+    ArrayA
+    ArrayB
+  build-depends:
+    , base >=4.12.0.0 && <5
+    , vext:internal
+  hs-source-dirs: src-pair-indef
+  default-language: Haskell2010
+  ghc-options: -O2 -Wall
+
+library pair-array-inst
+  default-language: Haskell2010
+  reexported-modules:
+    , Array.Pair.Lifted.Word8
+  build-depends:
+    , vext:inst
+    , vext:pair-indef
+  mixins:
+    vext:pair-indef (Array as Array.Pair.Lifted.Word8) requires
+      (ArrayA as Lifted, ArrayB as Word8),
+
+library pair-inst
+  default-language: Haskell2010
+  reexported-modules:
+    , Vector.Pair.Word8.Lifted
+  build-depends:
+    , vext:pair-array-inst
+    , vext:indef
+  mixins:
+    vext:indef (Vector as Vector.Pair.Word8.Lifted) requires
+      (Array as Array.Pair.Lifted.Word8),
+
+library
+  default-language: Haskell2010
+  reexported-modules:
+    , Vector.Std.Lifted
+    , Vector.Std.Word8
+    , Vector.Std.Unlifted
+    , Vector.Pair.Word8.Lifted
+    , Data.Text.Short.Unlifted
+  build-depends:
+    , vext:inst
+    , vext:pair-inst
+    , primitive >=0.7
+    , vext:internal

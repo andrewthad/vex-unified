@@ -1,0 +1,55 @@
+{-# language DataKinds #-}
+{-# language KindSignatures #-}
+{-# language MagicHash #-}
+{-# language RankNTypes #-}
+{-# language TypeFamilies #-}
+{-# language UnboxedTuples #-}
+
+signature ElementB where
+
+import GHC.Exts (State#,Int#,RuntimeRep)
+import GHC.Exts (TYPE,RuntimeRep)
+import Data.Kind (Type)
+
+import Internal
+
+import Array (T,RA#,RM#,ArrayRep)
+
+data R :: RuntimeRep
+
+data A# :: TYPE R -> TYPE ArrayRep
+data M# :: Type -> TYPE R -> TYPE ArrayRep
+
+type family Upcast (a :: TYPE R) :: T where ..
+
+width :: Int
+
+upcast :: forall (a :: TYPE R). A# a -> RA# (Upcast a)
+downcast :: forall (a :: TYPE R). RA# (Upcast a) -> A# a
+upcastMutable :: forall (s :: Type) (a :: TYPE R). M# s a -> RM# s (Upcast a)
+downcastMutable :: forall (s :: Type) (a :: TYPE R). RM# s (Upcast a) -> M# s a
+
+index# :: forall (a :: TYPE R).
+     A# a
+  -> Int#
+  -> a
+
+write# :: forall (s :: Type) (a :: TYPE R).
+     M# s a
+  -> Int#
+  -> a
+  -> State# s
+  -> State# s
+
+-- The function set# seems like it should go in Array, but it cannot.
+-- Elements of different widths need different implementations of this
+-- function.
+set# :: forall (s :: Type) (a :: TYPE R).
+     M# s a
+  -> Int#
+  -> Int#
+  -> a
+  -> State# s
+  -> State# s
+
+

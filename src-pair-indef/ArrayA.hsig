@@ -5,7 +5,7 @@
 {-# language UnboxedTuples #-}
 {-# language TypeFamilies #-}
 
-signature Array where
+signature ArrayA where
 
 import Data.Kind (Type)
 import GHC.Exts (TYPE,RuntimeRep,State#,Int#)
