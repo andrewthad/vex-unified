@@ -29,8 +29,6 @@ library indef
   exposed-modules:
     Vector
     Core
-    -- Vex.Sized.Vector
-    -- Vex.Sized.Slice
   signatures:
     Array
   build-depends:
