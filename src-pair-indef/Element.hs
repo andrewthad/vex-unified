@@ -15,8 +15,6 @@ import GHC.Exts (State#,Int#,RuntimeRep)
 import GHC.Exts (TYPE,RuntimeRep)
 import Data.Kind (Type)
 
-import Internal
-
 import Array (T,RA#,RM#,ArrayRep)
 
 import qualified ElementA

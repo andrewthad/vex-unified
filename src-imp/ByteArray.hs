@@ -14,7 +14,6 @@ module ByteArray
   ) where
 
 import GHC.Exts
-import Internal
 import Data.Kind
 
 type UAR = 'BoxedRep 'Unlifted

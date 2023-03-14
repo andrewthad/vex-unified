@@ -10,8 +10,6 @@ signature Array where
 import Data.Kind (Type)
 import GHC.Exts (TYPE,RuntimeRep,State#,Int#)
 
-import Internal
-
 data R :: RuntimeRep
 data ArrayRep :: RuntimeRep
 data A# :: TYPE R -> TYPE ArrayRep

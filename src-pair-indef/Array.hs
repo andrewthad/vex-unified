@@ -36,7 +36,6 @@ module Array
 
 import Data.Kind (Type)
 import GHC.Exts (TYPE,Levity(Unlifted),RuntimeRep(BoxedRep,TupleRep),State#,Int#,unsafeCoerce#)
-import Internal
 import qualified ArrayA as A
 import qualified ArrayB as B
 
