@@ -9,24 +9,22 @@
 module Word8
   ( R
   , A#
-  , ArrayRep
   , M#
   , index#
   , write#
   , unsafeFreeze#
   , initialized#
   , set#
-  , shrink#
+  , unsafeShrinkFreeze#
   , thaw#
   ) where
 
 import GHC.Exts
 import Data.Kind (Type)
-import PrimArray (PrimArray#(..),MutablePrimArray#(..))
+import Data.Unlifted (PrimArray#(..),MutablePrimArray#(..))
 
 import qualified GHC.Exts as Exts
 
-type ArrayRep = 'BoxedRep 'Unlifted
 type A# = PrimArray# @'Word8Rep
 type M# = MutablePrimArray# @'Word8Rep
 type R = 'Word8Rep
@@ -70,12 +68,12 @@ set# :: forall (s :: Type) (a :: TYPE R).
 set# (MutablePrimArray# m) off0 len0 a s0 = Exts.setByteArray# m off0 len0 (Exts.word2Int# (Exts.word8ToWord# (unsafeToW8 a))) s0
 
 -- shrink and freeze, all at once
-shrink# ::
+unsafeShrinkFreeze# ::
      M# s a
   -> Int#
   -> State# s
   -> (# State# s, A# a #)
-shrink# (MutablePrimArray# m) i s0Alpha = case getSizeofMutableByteArray# m s0Alpha of
+unsafeShrinkFreeze# (MutablePrimArray# m) i s0Alpha = case getSizeofMutableByteArray# m s0Alpha of
   (# s0, sz #) -> case sz ==# i of
     1# -> case Exts.unsafeFreezeByteArray# m s0 of
       (# s1, v #) -> (# s1, PrimArray# v #)

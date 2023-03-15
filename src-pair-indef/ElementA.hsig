@@ -2,30 +2,36 @@
 {-# language KindSignatures #-}
 {-# language MagicHash #-}
 {-# language RankNTypes #-}
-{-# language TypeFamilies #-}
 {-# language UnboxedTuples #-}
+{-# language TypeFamilies #-}
 
 signature ElementA where
 
-import GHC.Exts (State#,Int#,RuntimeRep)
-import GHC.Exts (TYPE,RuntimeRep)
 import Data.Kind (Type)
-
-import Array (T,RA#,RM#,ArrayRep)
+import GHC.Exts (TYPE,RuntimeRep,State#,Int#)
 
 data R :: RuntimeRep
-
+data ArrayRep :: RuntimeRep
 data A# :: TYPE R -> TYPE ArrayRep
 data M# :: Type -> TYPE R -> TYPE ArrayRep
 
-type family Upcast (a :: TYPE R) :: T where ..
+unsafeFreeze# :: forall (s :: Type) (a :: TYPE R).
+     M# s a
+  -> State# s
+  -> (# State# s, A# a #)
 
-width :: Int
+-- This is a shrink-and-freeze operation
+unsafeShrinkFreeze# :: forall (s :: Type) (a :: TYPE R).
+     M# s a
+  -> Int#
+  -> State# s
+  -> (# State# s, A# a #)
 
-upcast :: forall (a :: TYPE R). A# a -> RA# (Upcast a)
-downcast :: forall (a :: TYPE R). RA# (Upcast a) -> A# a
-upcastMutable :: forall (s :: Type) (a :: TYPE R). M# s a -> RM# s (Upcast a)
-downcastMutable :: forall (s :: Type) (a :: TYPE R). RM# s (Upcast a) -> M# s a
+initialized# :: forall (s :: Type) (a :: TYPE R).
+     Int#
+  -> a
+  -> State# s
+  -> (# State# s, M# s a #)
 
 index# :: forall (a :: TYPE R).
      A# a
@@ -39,9 +45,6 @@ write# :: forall (s :: Type) (a :: TYPE R).
   -> State# s
   -> State# s
 
--- The function set# seems like it should go in Array, but it cannot.
--- Elements of different widths need different implementations of this
--- function.
 set# :: forall (s :: Type) (a :: TYPE R).
      M# s a
   -> Int#
@@ -50,3 +53,9 @@ set# :: forall (s :: Type) (a :: TYPE R).
   -> State# s
   -> State# s
 
+thaw# :: forall (s :: Type) (a :: TYPE R).
+     A# a
+  -> Int#
+  -> Int#
+  -> State# s
+  -> (# State# s, M# s a #)

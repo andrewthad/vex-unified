@@ -17,7 +17,7 @@ module Lifted
   , uninitialized#
   , initialized#
   , set#
-  , shrink#
+  , unsafeShrinkFreeze#
   , thaw#
   ) where
 
@@ -78,12 +78,12 @@ set# m off0 len0 a s0 =
    in go off0 len0 s0
 
 -- shrink and freeze, all at once
-shrink# ::
+unsafeShrinkFreeze# ::
      M# s a
   -> Int#
   -> State# s
   -> (# State# s, A# a #)
-shrink# m i s0 = case sizeofMutableArray# m ==# i of
+unsafeShrinkFreeze# m i s0 = case sizeofMutableArray# m ==# i of
   1# -> Exts.unsafeFreezeArray# m s0
   _ -> Exts.freezeArray# m 0# i s0
 

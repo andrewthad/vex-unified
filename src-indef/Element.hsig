@@ -5,15 +5,14 @@
 {-# language UnboxedTuples #-}
 {-# language TypeFamilies #-}
 
-signature ArrayB where
+signature Element where
 
 import Data.Kind (Type)
-import GHC.Exts (TYPE,RuntimeRep,State#,Int#)
+import GHC.Exts (TYPE,RuntimeRep(BoxedRep),Levity(Unlifted),State#,Int#)
 
 data R :: RuntimeRep
-data ArrayRep :: RuntimeRep
-data A# :: TYPE R -> TYPE ArrayRep
-data M# :: Type -> TYPE R -> TYPE ArrayRep
+data A# :: TYPE R -> TYPE ('BoxedRep 'Unlifted)
+data M# :: Type -> TYPE R -> TYPE ('BoxedRep 'Unlifted)
 
 unsafeFreeze# :: forall (s :: Type) (a :: TYPE R).
      M# s a
@@ -21,7 +20,7 @@ unsafeFreeze# :: forall (s :: Type) (a :: TYPE R).
   -> (# State# s, A# a #)
 
 -- This is a shrink-and-freeze operation
-shrink# :: forall (s :: Type) (a :: TYPE R).
+unsafeShrinkFreeze# :: forall (s :: Type) (a :: TYPE R).
      M# s a
   -> Int#
   -> State# s

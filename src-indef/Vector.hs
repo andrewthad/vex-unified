@@ -27,11 +27,15 @@ module Vector
   , C.write
   , C.index#
   , C.index
-  , C.unsafeFreeze
   , unlift
   , C.substitute
   , C.initialized
   , C.unsafeCoerceLength
+    -- * Ranges
+  , C.set
+    -- * Freeze
+  , C.unsafeShrinkFreeze
+  , C.unsafeFreeze
     -- * Composite
   , map
   , ifoldl'
@@ -40,9 +44,9 @@ module Vector
 
 import Prelude hiding (read,map)
 
-import Core (Vector(..),Vector#,MutableVector(..),unsafeFreeze,unsafeSet,index,write)
+import Core (Vector(..),Vector#,MutableVector(..),unsafeFreeze,index,write)
 import Data.Unlifted (Maybe#(..))
-import Array (R,A#,M#)
+import Element (R,A#,M#)
 import GHC.Exts (Int(I#),RuntimeRep)
 import GHC.ST (ST,runST)
 import Data.Kind (Type)
@@ -52,7 +56,7 @@ import Arithmetic.Types (type (<),Fin(Fin),Nat#)
 import Arithmetic.Types (type (:=:),type (<=))
 import GHC.TypeNats (type (+))
 
-import qualified Array as A
+import qualified Element as A
 import qualified Arithmetic.Equal as Equal
 import qualified Arithmetic.Fin as Fin
 import qualified Arithmetic.Plus as Plus
@@ -62,15 +66,6 @@ import qualified Arithmetic.Lte as Lte
 import qualified Arithmetic.Nat as Nat
 import qualified Core as C
 import qualified GHC.TypeNats as GHC
-
--- unfoldrN :: Int -> (b -> Maybe# (# a, b #)) -> b -> Vector 'Unknown a
--- unfoldrN !n f !b0 = runST do
---   dst <- uninitialized n
---   let go !ix !b
---         | ix == n = unsafeFreeze dst
---         | Maybe# (# | (# a, b' #) #) <- f b = unsafeWrite dst ix a *> go (ix + 1) b'
---         | otherwise = C.unsafeShrink dst ix
---   go 0 b0
 
 ifoldlSlice' :: forall (i :: GHC.Nat) (m :: GHC.Nat) (n :: GHC.Nat) (a :: TYPE R) (b :: Type).
      (i + n <= m)
@@ -97,28 +92,7 @@ ifoldl' :: forall (n :: GHC.Nat) (a :: TYPE R) (b :: Type).
 {-# inline ifoldl' #-}
 ifoldl' f b0 v n = ifoldlSlice' (Lte.reflexive @n) f b0 v (Nat.zero# (# #)) n
 
--- x go b0 off0 len0 where
--- x   go !b !off !len
--- x     | len == 0 = b
--- x     | otherwise = go (g b (C.unsafeIndex v off)) (off + 1) (len - 1)
-
--- x ifoldl' :: (b -> Fin n -> a -> b) -> b -> Slice ('Known n) a -> b
--- x {-# inline ifoldl' #-}
--- x ifoldl' g !b0 (Slice v off0 len0) = go b0 0 len0 where
--- x   go !b !ix !len
--- x     | len == 0 = b
--- x     | otherwise =
--- x         let fin = Fin (Unsafe.Nat ix) Unsafe.Lt
--- x          in go (g b fin (C.unsafeIndex v (off0 + ix))) (ix + 1) (len - 1)
--- x 
--- x foldrMap :: Monoid m => (a -> m) -> Slice n a -> m
--- x {-# inline foldrMap #-}
--- x foldrMap g (Slice v off0 len0) = go off0 len0 where
--- x   go !off !len
--- x     | len == 0 = mempty
--- x     | otherwise = g (C.index v off) <> go (off + 1) (len - 1)
-
--- | Map over a vector starting at an offset.
+-- | Map over a slice of a vector.
 mapSlice :: forall (i :: GHC.Nat) (m :: GHC.Nat) (n :: GHC.Nat) (a :: TYPE R).
      (i + n <= m)
   -> (a -> a)
@@ -128,6 +102,7 @@ mapSlice :: forall (i :: GHC.Nat) (m :: GHC.Nat) (n :: GHC.Nat) (a :: TYPE R).
   -> Vector n a
 {-# inline mapSlice #-}
 mapSlice p f v off0 n = runST action where
+  -- TODO: We should use Fin.ascendFromM_# to avoid unneeded additions.
   action :: forall s. ST s (Vector n a)
   action = do
     dst <- C.unsafeThaw p v off0 n
@@ -149,4 +124,3 @@ map f v n = mapSlice Lte.reflexive f v (Nat.zero# (# #)) n
 
 unlift :: Vector n a -> Vector# n a
 unlift (Vector x) = x
-

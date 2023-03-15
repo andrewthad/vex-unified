@@ -50,8 +50,8 @@ module Core
   -- , size
   -- , uninitialized
   , initialized
-  , unsafeSet
-  , unsafeShrink
+  , unsafeShrinkFreeze
+  , set
   , unsafeFreeze
   , unsafeFreeze#
   , unsafeThaw
@@ -64,36 +64,38 @@ import Prelude hiding (read,map)
 
 import Arithmetic.Unsafe (Fin#(Fin#))
 import Arithmetic.Unsafe (Nat#(Nat#))
-import Array (ArrayRep)
-import Array (R,A#,M#)
+import Element (R,A#,M#)
 import Data.Kind (Type)
-import GHC.Exts (Int(I#),RuntimeRep(IntRep,TupleRep))
+import GHC.Exts (Int(I#),RuntimeRep(IntRep,TupleRep,BoxedRep),Levity(Unlifted))
 import GHC.Exts (TYPE,State#,Int#,(*#))
 import GHC.ST (ST(ST),runST)
 import GHC.TypeNats (type (+))
 import Arithmetic.Types (type (:=:),type (<=))
 
-import qualified Array as A
+import qualified Element as A
 import qualified Arithmetic.Types as Arithmetic
 import qualified GHC.TypeNats as GHC
 
 data Vector :: GHC.Nat -> TYPE R -> Type where
   Vector :: Vector# n a -> Vector n a
 
-newtype Vector# :: GHC.Nat -> TYPE R -> TYPE ArrayRep where
+newtype Vector# :: GHC.Nat -> TYPE R -> TYPE ('BoxedRep 'Unlifted) where
   Vector# :: A# a -> Vector# n a
 
 data MutableVector :: Type -> GHC.Nat -> TYPE R -> Type where
   MutableVector :: MutableVector# s n a -> MutableVector s n a
 
-newtype MutableVector# :: Type -> GHC.Nat -> TYPE R -> TYPE ArrayRep where
+newtype MutableVector# :: Type -> GHC.Nat -> TYPE R -> TYPE ('BoxedRep 'Unlifted) where
   MutableVector# :: M# s a -> MutableVector# s n a
 
-unI :: Int -> Int#
-unI (I# i) = i
-
-unsafeSet :: MutableVector s n a -> Int -> Int -> a -> ST s ()
-unsafeSet (MutableVector (MutableVector# x)) (I# off) (I# len) a =
+set :: 
+     (i + n <= m)
+  -> MutableVector s n a
+  -> Nat# i
+  -> Nat# m
+  -> a
+  -> ST s ()
+set _ (MutableVector (MutableVector# x)) (Nat# off) (Nat# len) a =
   ST $ \s -> case A.set# x off len a s of
     s' -> (# s', () #)
 
@@ -133,13 +135,14 @@ write :: forall (s :: Type) (n :: GHC.Nat) (a :: TYPE R).
 write (MutableVector x) i a = ST \s ->
   (# write# x i a s, () #)
 
-unsafeShrink :: forall (s :: Type) (n0 :: GHC.Nat) (n1 :: GHC.Nat) (a :: TYPE R).
+-- | The argument array must not be reused.
+unsafeShrinkFreeze :: forall (s :: Type) (n0 :: GHC.Nat) (n1 :: GHC.Nat) (a :: TYPE R).
      (n1 <= n0)
   -> MutableVector s n0 a
   -> Nat# n1
   -> ST s (Vector n1 a)
-unsafeShrink _ (MutableVector (MutableVector# m)) (Nat# n) =
-  ST \s -> case A.shrink# m n s of
+unsafeShrinkFreeze _ (MutableVector (MutableVector# m)) (Nat# n) =
+  ST \s -> case A.unsafeShrinkFreeze# m n s of
     (# s', y #) -> (# s', Vector (Vector# y) #)
 
 unsafeFreeze :: forall (s :: Type) (n :: GHC.Nat) (a :: TYPE R).
